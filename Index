@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hollywood Kia | Activity Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Chosen Palette: Warm Neutral with Indigo & Emerald Accents -->
+    <!-- Application Structure Plan: A two-tier dashboard. Tier 1 (Overview) provides a macro view of all teams against their targets using a grouped bar chart. Tier 2 (Team Deep Dive) is an interactive module for specific team drills. New Feature: Logic integrated to track "Test Track Attempts" against a 15-count monthly pass threshold. -->
+    <!-- Visualization & Content Choices: 
+         1. Dealership Overview: Bar Chart -> Goal: Compare team appts vs targets. 
+         2. Team Deep Dive Chart: Mixed Chart (Bar + Line) -> Goal: Show individual appt pacing.
+         3. Detailed Metrics Table: Interactive Table -> Updated to include Pass/Fail logic for Test Track Attempts (15 per month).
+         (Confirming: NO SVG, NO Mermaid JS). -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fafaf9;
+            color: #1c1917;
+        }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 350px;
+            max-height: 400px;
+        }
+
+        @media (max-width: 768px) {
+            .chart-container { height: 280px; }
+        }
+
+        .fade-enter {
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.4s ease-out;
+        }
+        .fade-enter-active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .table-wrapper::-webkit-scrollbar { height: 8px; }
+        .table-wrapper::-webkit-scrollbar-track { background: #f5f5f4; border-radius: 4px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 4px; }
+    </style>
+</head>
+<body class="antialiased pb-12">
+
+    <!-- Header Section -->
+    <header class="bg-white border-b border-stone-200 sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-extrabold text-stone-900 tracking-tight">
+                    <span class="text-indigo-600">Hollywood Kia</span> Tracker
+                </h1>
+                <p class="text-sm text-stone-500 font-medium mt-1 text-center md:text-left">Performance Period: April 2026 | Generated: April 30</p>
+            </div>
+            
+            <div class="bg-indigo-50 border border-indigo-100 rounded-lg p-3 text-sm max-w-sm">
+                <p class="font-bold text-indigo-900 mb-1">&#9432; Performance Standards</p>
+                <div class="text-indigo-800 text-xs leading-relaxed space-y-1">
+                    <p>• <strong>22 Appointments:</strong> Individual MTD Goal.</p>
+                    <p>• <strong>15 Test Track Attempts:</strong> Required for Monthly Pass.</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-8 space-y-12">
+
+        <!-- Section 1: Dealership Overview -->
+        <section class="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 md:p-8">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-stone-800 flex items-center gap-2">
+                    <span class="text-2xl">&#128202;</span> Dealership Overview
+                </h2>
+                <p class="text-stone-500 mt-2 max-w-3xl leading-relaxed">
+                    This macro view displays total appointments compared to team targets. While individual goals are 22, the team target scales based on the current roster size.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                <div class="lg:col-span-2">
+                    <div class="chart-container bg-stone-50 rounded-xl p-4 border border-stone-100">
+                        <canvas id="overviewChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <h3 class="font-bold text-stone-700 uppercase tracking-wider text-sm border-b border-stone-200 pb-2">Status Dashboard</h3>
+                    <div class="bg-red-50 text-red-800 p-4 rounded-xl border border-red-100">
+                        <p class="text-sm font-medium mb-1">Appointment Pacing</p>
+                        <p class="text-xl font-bold">&#10060; ALL TEAMS BELOW TARGET</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-3">
+                        <div class="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                            <p class="text-xs text-emerald-700 font-bold uppercase">Top Test Tracker</p>
+                            <p class="text-base font-bold text-emerald-900 mt-1">Chevoy Taylor</p>
+                            <p class="text-xs text-emerald-600 font-medium">42 Attempts (Pass)</p>
+                        </div>
+                        <div class="bg-stone-50 p-3 rounded-xl border border-stone-200">
+                            <p class="text-xs text-stone-500 font-semibold uppercase">Top Appt. Volume</p>
+                            <p class="text-base font-bold text-stone-900 mt-1">Alex Ojeda</p>
+                            <p class="text-sm text-indigo-600 font-medium">30 Appts</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section 2: Interactive Team Analysis -->
+        <section class="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 md:p-8" id="team-analysis-section">
+            <div class="mb-6">
+                <h2 class="text-2xl font-bold text-stone-800 flex items-center gap-2">
+                    <span class="text-2xl">&#128101;</span> Team Performance Drill-Down
+                </h2>
+                <p class="text-stone-500 mt-2 max-w-3xl leading-relaxed">
+                    Select a team to audit individual performance. The table highlights <strong>Test Track Attempts</strong> status (Pass: 15+) and appointment pacing (Goal: 22).
+                </p>
+            </div>
+
+            <!-- Team Selector -->
+            <div class="flex flex-wrap gap-2 mb-8" id="team-buttons"></div>
+
+            <div id="team-content-area" class="fade-enter fade-enter-active">
+                
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+                    <div>
+                        <h3 class="text-xl font-extrabold text-stone-900" id="current-team-name">Team Name</h3>
+                        <p class="text-sm font-medium text-stone-500" id="current-team-status">Stats Loading...</p>
+                    </div>
+                    <div class="mt-2 md:mt-0 flex gap-2">
+                        <span class="px-3 py-1 bg-indigo-100 rounded-md text-xs font-bold text-indigo-700">MTD Appt: 22</span>
+                        <span class="px-3 py-1 bg-emerald-100 rounded-md text-xs font-bold text-emerald-700">MTD Track: 15</span>
+                    </div>
+                </div>
+
+                <div class="chart-container bg-stone-50 rounded-xl p-4 border border-stone-100 mb-8">
+                    <canvas id="teamChart"></canvas>
+                </div>
+
+                <div class="table-wrapper overflow-x-auto rounded-xl border border-stone-200">
+                    <table class="min-w-full divide-y divide-stone-200">
+                        <thead class="bg-stone-50">
+                            <tr>
+                                <th scope="col" class="px-6 py-4 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">Salesperson</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-stone-500 uppercase tracking-wider">Calls</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-indigo-600 uppercase tracking-wider bg-indigo-50/50">Test Track Attempts</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-stone-500 uppercase tracking-wider">Leads</th>
+                                <th scope="col" class="px-6 py-4 text-center text-xs font-bold text-stone-900 uppercase tracking-wider bg-stone-100">Appts Created</th>
+                                <th scope="col" class="px-6 py-4 text-right text-xs font-bold text-stone-500 uppercase tracking-wider">Pacing Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="team-table-body" class="bg-white divide-y divide-stone-200"></tbody>
+                    </table>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <script>
+        // --- DATA & STANDARDS ---
+        const targetPerPerson = 22;
+        const testTrackTarget = 15;
+
+        const reportData = [
+            {
+                id: "dairon", name: "Team Dairon", target: 132, appts: 73,
+                members: [
+                    { name: "Karen Medina Hernandez", calls: 702, attempts: 5, leads: 100, appts: 22 },
+                    { name: "Vivian Jorge", calls: 1414, attempts: 0, leads: 124, appts: 18 },
+                    { name: "Lorena Moreno", calls: 480, attempts: 40, leads: 42, appts: 14 },
+                    { name: "Danny Hernandez", calls: 683, attempts: 3, leads: 131, appts: 9 },
+                    { name: "Ernesto Cortez", calls: 428, attempts: 22, leads: 80, appts: 7 },
+                    { name: "Zach Ruppert", calls: 138, attempts: 0, leads: 0, appts: 3 }
+                ]
+            },
+            {
+                id: "chante", name: "Team Chante", target: 154, appts: 66,
+                members: [
+                    { name: "Chevoy Taylor", calls: 502, attempts: 42, leads: 95, appts: 26 },
+                    { name: "Danilo Urena Gomez", calls: 374, attempts: 40, leads: 81, appts: 11 },
+                    { name: "Luis Perez", calls: 524, attempts: 41, leads: 45, appts: 8 },
+                    { name: "Isroel Salazar", calls: 291, attempts: 0, leads: 34, appts: 8 },
+                    { name: "Chale Perez", calls: 551, attempts: 0, leads: 82, appts: 8 },
+                    { name: "Oriel Kennion", calls: 322, attempts: 4, leads: 30, appts: 4 },
+                    { name: "Kermitt Graham", calls: 316, attempts: 0, leads: 35, appts: 1 }
+                ]
+            },
+            {
+                id: "jose", name: "Team Jose", target: 132, appts: 62,
+                members: [
+                    { name: "Naomis Perez", calls: 612, attempts: 0, leads: 66, appts: 20 },
+                    { name: "Jhonny Rodriguez", calls: 396, attempts: 0, leads: 168, appts: 14 },
+                    { name: "Manuel Puyoza", calls: 467, attempts: 0, leads: 38, appts: 9 },
+                    { name: "Devin Duran", calls: 854, attempts: 15, leads: 101, appts: 8 },
+                    { name: "Patricia Alvarado", calls: 595, attempts: 14, leads: 89, appts: 7 },
+                    { name: "Javier Masson", calls: 236, attempts: 2, leads: 38, appts: 4 }
+                ]
+            },
+            {
+                id: "victoria", name: "Team Victoria", target: 44, appts: 38,
+                members: [
+                    { name: "Alex Ojeda", calls: 183, attempts: 0, leads: 54, appts: 30 },
+                    { name: "Carlos Azahares", calls: 115, attempts: 0, leads: 44, appts: 8 }
+                ]
+            },
+            {
+                id: "jason", name: "Team Jason", target: 154, appts: 24,
+                members: [
+                    { name: "Jawara Thompson", calls: 432, attempts: 0, leads: 49, appts: 10 },
+                    { name: "Carlos Salazar", calls: 620, attempts: 16, leads: 100, appts: 5 },
+                    { name: "Daniel Salazar", calls: 664, attempts: 21, leads: 78, appts: 5 },
+                    { name: "Dmytro Tereshchuk", calls: 126, attempts: 0, leads: 30, appts: 2 },
+                    { name: "Justin Cooley", calls: 270, attempts: 0, leads: 37, appts: 1 },
+                    { name: "Matt Palmer", calls: 84, attempts: 0, leads: 1, appts: 1 },
+                    { name: "Mario Ramirez", calls: 530, attempts: 0, leads: 123, appts: 0 }
+                ]
+            }
+        ];
+
+        let currentTeamId = reportData[0].id;
+        let overviewChartInstance = null;
+        let teamChartInstance = null;
+
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#78716c';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initOverviewChart();
+            buildTeamNavigation();
+            loadTeamData(currentTeamId);
+        });
+
+        function buildTeamNavigation() {
+            const container = document.getElementById('team-buttons');
+            reportData.forEach(team => {
+                const btn = document.createElement('button');
+                btn.innerText = team.name;
+                btn.className = `px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 ${team.id === currentTeamId ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-stone-600 border-stone-200 hover:border-indigo-300'}`;
+                btn.onclick = () => {
+                    if (currentTeamId !== team.id) {
+                        currentTeamId = team.id;
+                        updateNavigationUI();
+                        loadTeamDataWithAnimation(team.id);
+                    }
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function updateNavigationUI() {
+            const buttons = document.getElementById('team-buttons').children;
+            Array.from(buttons).forEach((btn, index) => {
+                const isSelected = reportData[index].id === currentTeamId;
+                btn.className = `px-5 py-2 rounded-full text-sm font-semibold transition-all duration-200 border-2 ${isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-stone-600 border-stone-200 hover:border-indigo-300'}`;
+            });
+        }
+
+        function loadTeamDataWithAnimation(teamId) {
+            const area = document.getElementById('team-content-area');
+            area.classList.remove('fade-enter-active');
+            setTimeout(() => {
+                loadTeamData(teamId);
+                area.classList.add('fade-enter-active');
+            }, 150); 
+        }
+
+        function loadTeamData(teamId) {
+            const team = reportData.find(t => t.id === teamId);
+            document.getElementById('current-team-name').innerText = team.name;
+            document.getElementById('current-team-status').innerText = `Team Target: ${team.target} | Actual: ${team.appts}`;
+            initTeamChart(team);
+            populateTeamTable(team);
+        }
+
+        function populateTeamTable(team) {
+            const tbody = document.getElementById('team-table-body');
+            tbody.innerHTML = '';
+            team.members.forEach(member => {
+                const isApptPacing = member.appts >= targetPerPerson;
+                const isTrackPass = member.attempts >= testTrackTarget;
+                
+                const apptBadge = isApptPacing 
+                    ? `<span class="text-emerald-600 font-bold">☑ PACING</span>`
+                    : `<span class="text-rose-500 font-bold">❌ BELOW</span>`;
+
+                const trackStatus = isTrackPass
+                    ? `<span class="px-2 py-1 bg-emerald-100 text-emerald-800 rounded font-bold">${member.attempts} (PASS)</span>`
+                    : `<span class="px-2 py-1 bg-amber-100 text-amber-800 rounded font-bold">${member.attempts} (FAIL)</span>`;
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-stone-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-stone-900">${member.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-stone-600">${member.calls}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">${trackStatus}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center text-stone-600">${member.leads}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center font-bold text-stone-900 bg-stone-50">${member.appts}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-medium">${apptBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function initOverviewChart() {
+            const ctx = document.getElementById('overviewChart').getContext('2d');
+            const labels = reportData.map(t => t.name.replace('Team ', ''));
+            if (overviewChartInstance) overviewChartInstance.destroy();
+            overviewChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { label: 'Created', data: reportData.map(t => t.appts), backgroundColor: '#4f46e5', borderRadius: 4 },
+                        { label: 'MTD Target', data: reportData.map(t => t.target), backgroundColor: '#e7e5e4', borderRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function initTeamChart(team) {
+            const ctx = document.getElementById('teamChart').getContext('2d');
+            const labels = team.members.map(m => m.name.split(' ')[0]);
+            const appts = team.members.map(m => m.appts);
+            if (teamChartInstance) teamChartInstance.destroy();
+            teamChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        { type: 'line', label: 'Goal (22)', data: Array(team.members.length).fill(targetPerPerson), borderColor: '#10b981', borderDash: [5, 5], fill: false, pointRadius: 0 },
+                        { type: 'bar', label: 'Created', data: appts, backgroundColor: appts.map(a => a >= 22 ? '#10b981' : '#f43f5e'), borderRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+            });
+        }
+    </script>
+</body>
+</html>
